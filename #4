@@ -1,0 +1,82 @@
+import numpy as np
+import matplotlib.pyplot as plt
+
+e = np.e
+N = 100
+h = (e ** 2 - e) / N
+tolerance = 0.0001
+
+a1 = (2 * e - 1) / (e - 1)
+a2 = 2
+parameters = []
+
+nodes = np.linspace(e, e ** 2, N)
+
+
+def f(x_, arr):
+    return np.array([arr[1], np.sqrt(1 / (x_ ** 2) - np.exp(arr[1]) * arr[0] + e * arr[0] ** 2 / np.log(x_))])
+
+
+dots = []
+
+
+def iterate(y_now, y_prev, x):
+    y_n1 = 2 * y_now - y_prev + h ** 2 * np.sqrt(
+        1 / x ** 2 - np.exp((y_now - y_prev) / 2 / h) * y_now + e * y_now ** 2 / np.log(x))
+    y_n2 = y_n1 - (y_n1 + 2 * y_now + y_prev - h * h * np.sqrt(
+        1 / x ** 2 - np.exp((y_n1 - y_prev) / (2 * h)) * y_now + e * y_now ** 2 / np.log(x))) / (
+                   (1 + h * np.exp((y_n1 - y_prev) / (2 * h))) / (
+                       4 * np.sqrt(1 / x ** 2 - np.exp((y_n1 - y_prev) / 2 / h) * y_now + e * y_now ** 2 / np.log(x))))
+    while abs(y_n2 - y_n1) > 1e-5:
+        y_n1 = y_n2
+        y_n2 = y_n1 - (y_n1 + 2 * y_now + y_prev - h * h * np.sqrt(
+        1 / x ** 2 - np.exp((y_n1 - y_prev) / (2 * h)) * y_now + e * y_now ** 2 / np.log(x))) / (
+                   (1 + h * np.exp((y_n1 - y_prev) / (2 * h))) / (
+                       4 * np.sqrt(1 / x ** 2 - np.exp((y_n1 - y_prev) / 2 / h) * y_now + e * y_now ** 2 / np.log(x))))
+
+    return y_n2
+    #dots.append(u_[N - 1, 0])
+    #parameters.append(a)
+    #return u_
+
+
+y_prev = e
+y_now = y_prev + h * a1
+x = e
+
+
+
+for i in range(N):
+    y_next = iterate(y_now, y_prev, x)
+    y_prev = y_now
+    y_now = y_next
+    x += h
+
+
+# u = np.array([0. for j in range(2 * (N + 1))])
+# u = u.reshape(N + 1, 2)
+# u[0] = [0, a2]
+# iterate(a2, N, u)
+
+# res = 1
+# result = []
+
+# while res > tolerance:
+#    alpha = (parameters[0] + parameters[1]) / 2
+#    u = np.array([0. for i in range(2 * (N + 1))])
+#    u = u.reshape(N + 1, 2)
+#    u[0] = [0, alpha]
+#    u = iterate(alpha, N, u)
+#
+#    if (dots[0] - 2) * (dots[2] - 2) < 0:
+#        parameters = [parameters[0], alpha]
+#        dots = [dots[0], dots[2]]
+#    else:
+#        parameters = [parameters[1], alpha]
+#        dots = [dots[1], dots[2]]
+#    res = abs(u[N - 1, 0] - 2.)
+
+# y = [i[0] for i in u]
+# fig, ax = plt.subplots()
+# ax.scatter(nodes, y)
+# plt.show()
