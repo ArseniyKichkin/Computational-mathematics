@@ -1,0 +1,76 @@
+import numpy as np
+import matplotlib.pyplot as plt
+import random
+
+N_ = 11 * 2 ** 9
+N = N_ - 2 ** 9 + 1
+x = np.linspace(0, 1, N)
+h = x[1] - x[0]
+
+y_1 = np.zeros(len(x))
+y_2 = np.zeros(len(x))
+
+y_1_4 = np.zeros(len(x))
+y_2_4 = np.zeros(len(x))
+y_1_4[0] = random.random() * 10
+y_2_4[0] = random.random() * 10
+
+# Initial conditions:
+y_1[0] = y_1_4[0]
+y_2[0] = y_2_4[0]
+
+y_1_an = np.zeros(N)
+y_2_an = np.zeros(N)
+
+for i in range(N - 1):
+    f1 = -101 * y_1_4[i] + 250 * y_2_4[i]
+    f2 = -101 * (y_1_4[i] + h * f1 / 2) + 250 * (y_2_4[i] + h * f1 / 2)
+    f3 = -101 * (y_1_4[i] - h * f1 + 2 * h * f2) + 250 * (y_2_4[i] - h * f1 + 2 * h * f2)
+    # f4 = -101 * (y_1_4[i] + h * f3) + 250 * (y_2_4[i] + h * f3)
+
+    f1_ = 40 * y_1_4[i] - 101 * y_2_4[i]
+    f2_ = 40 * (y_1_4[i] + h * f1_ / 2) - 101 * (y_2_4[i] + h * f1_ / 2)
+    f3_ = 40 * (y_1_4[i] - h * f1 + 2 * h * f2_) - 101 * (y_2_4[i] - h * f1 + 2 * h * f2_)
+    # f4_ = 40 * (y_1_4[i] + h * f3_) - 101 * (y_2_4[i] + h * f3_)
+    y_1_4[i + 1] = y_1_4[i] + h * (f1 + 4 * f2 + f3) / 6
+    y_2_4[i + 1] = y_2_4[i] + h * (f1_ + 4 * f2_ + f3_) / 6
+    # f1 = -101 * y_1_4[i] + 250 * y_2_4[i]
+    # f1_ = 40 * y_1_4[i] - 101 * y_2_4[i]
+    # f2 = -101 * (y_1_4[i] + h * f1 / 2) + 250 * (y_2_4[i] + h * f1 / 2)
+    # f2_ = 40 * (y_1_4[i] + h * f1_ / 2) - 101 * (y_2_4[i] + h * f1_ / 2)
+    # y_1_4[i + 1] = y_1_4[i] + h * (f1 + f2) / 2
+    # y_2_4[i + 1] = y_2_4[i] + h * (f1_ + f2_) / 2
+
+for i in range(N):
+    y_1_an[i] = (y_2[0] / 4 - y_1[0] / 10) * (-5) * np.exp(-201 * x[i]) + (y_2[0] / 4 + y_1[0] / 10) * 5 * np.exp(-x[i])
+    y_2_an[i] = (y_2[0] / 4 - y_1[0] / 10) * 2 * np.exp(-201 * x[i]) + (y_2[0] / 4 + y_1[0] / 10) * 2 * np.exp(-x[i])
+
+for i in range(N - 1):
+    y_1[i + 1] = y_1[i] + h * (-101 * y_1[i] + 250 * y_2[i])
+    y_2[i + 1] = y_2[i] + h * (40 * y_1[i] - 101 * y_2[i])
+
+fig, ax = plt.subplots(nrows=2, ncols=2)
+
+ax[0, 0].scatter(x, y_1_4, color='r')
+ax[0, 0].scatter(x, y_1_an, color='b')
+
+ax[0, 1].scatter(x, y_2_4)
+ax[0, 1].scatter(x, y_2_an)
+
+# ax[0].set_xlabel('x')
+# ax[0].set_ylabel('y_1')
+
+ax[1, 0].scatter(x, y_1)
+ax[1, 0].scatter(x, y_1_an)
+ax[1, 1].scatter(x, y_2)
+ax[1, 1].scatter(x, y_2_an)
+
+# ax[1].set_xlabel('x')
+# ax[1].set_ylabel('y_2')
+plt.show()
+print(([abs(y_1_4[int(N_ * i / 11)] - y_1_an[int(N_ * i / 11)]) for i in range(11)]),
+      ([abs(y_2_4[int(N_ * i / 11)] - y_2_an[int(N_ * i / 11)]) for i in range(11)]))
+print(([abs(y_1[int(N_ * i / 11)] - y_1_an[int(N_ * i / 11)]) for i in range(11)]),
+      ([abs(y_2[int(N_ * i / 11)] - y_2_an[int(N_ * i / 11)]) for i in range(11)]))
+print("Число узлов = ", N)
+plt.close()
