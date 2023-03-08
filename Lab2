@@ -1,0 +1,189 @@
+import numpy as np
+import matplotlib.pyplot as plt
+
+p = 5
+N_ = 11 * 2 ** p
+N = N_ - 2 ** p + 1
+nodes = np.linspace(0, 1, N)
+h = nodes[1] - nodes[0]
+x_0 = 1 / np.sqrt(3)
+u0 = 2
+u1 = 1
+l_a = np.sqrt(x_0 ** 3 / np.exp(-x_0))
+l_b = np.sqrt(x_0 / np.exp(-x_0))
+mu_b = 1 / x_0
+mu_a = (x_0 ** 2 - 1) / (x_0 ** 3)
+a11 = np.exp(-l_a * x_0) - np.exp(l_a * x_0)
+a12 = np.exp(l_b * (2 - x_0)) - np.exp(l_b * x_0)
+a21 = np.exp(-x_0) * l_a * (np.exp(l_a * x_0) + np.exp(-l_a * x_0))
+a22 = np.exp(-x_0) * l_b * (np.exp(l_b * (2 - x_0)) + np.exp(l_b * x_0))
+b1 = mu_b - mu_a + (mu_a - u0) * np.exp(l_a * x_0) - (mu_b - u1) * np.exp(l_b * (1 - x_0))
+b2 = np.exp(-x_0) * l_a * (u0 - mu_a) * np.exp(l_a * x_0) + np.exp(-x_0) * l_b * (u1 - mu_b) * np.exp(l_b * (1 - x_0))
+c1 = (((u0 - mu_a) * a11 - b1) * a22 - ((u0 - mu_a) * a21 - b2) * a12) / (a11 * a22 - a12 * a21)
+c2 = (b1 * a22 - b2 * a12) / (a11 * a22 - a12 * a21)
+c3 = (b2 * a11 - b1 * a21) / (a11 * a22 - a12 * a21)
+c4 = (u1 - mu_b) * np.exp(l_b) - c3 * np.exp(2 * l_b)
+nodes_a = np.array([x for x in nodes if x < x_0])
+nodes_b = np.array([x for x in nodes if x > x_0])
+y1 = c1 * np.exp(l_a * nodes_a) + c2 * np.exp(-l_a * nodes_a) + mu_a
+y2 = c3 * np.exp(l_b * nodes_b) + c4 * np.exp(-l_b * nodes_b) + mu_b
+
+
+def draw_analytical():
+    fig, ax = plt.subplots()
+    ax.scatter(nodes_a, y1)
+    ax.scatter(nodes_b, y2)
+    plt.show()
+    plt.close()
+
+
+# Numerical solution of model task
+
+# 1 <= l <= l_a - 1
+
+a = np.exp(-x_0)
+b = -2 * np.exp(-x_0) - x_0 ** 3 * h ** 2
+c = a
+d = -(x_0 ** 2 - 1) * h ** 2
+
+# l_b + 1 <= l <= L - 1
+
+a_ = np.exp(-x_0)
+b_ = -2 * np.exp(-x_0) - x_0 * h ** 2
+c_ = a_
+d_ = -1 * h ** 2
+
+# Direct progonka
+
+alpha = np.zeros(nodes_a.size - 2)
+beta = np.zeros(nodes_a.size - 2)
+alpha_ = np.zeros(nodes_b.size - 2)
+beta_ = np.zeros(nodes_b.size - 2)
+
+alpha[0] = -a / b
+beta[0] = (d - c * u0) / b
+alpha_[alpha_.size - 1] = -c_ / b_
+beta_[beta_.size - 1] = (d_ - c_ * u1) / b_
+
+for i in range(1, alpha.size):
+    alpha[i] = - a / (b + c * alpha[i - 1])
+    beta[i] = (d - c * beta[i - 1]) / (b + c * alpha[i - 1])
+for i in reversed(range(0, alpha_.size - 1)):
+    alpha_[i] = - c_ / (b_ + a_ * alpha_[i + 1])
+    beta_[i] = (d_ - a_ * beta_[i + 1]) / (b_ + a_ * alpha_[i + 1])
+
+y_left = np.zeros(nodes_a.size)
+y_right = np.zeros(nodes_b.size)
+y_left[0] = u0
+y_right[y_right.size - 1] = u1
+y_left[y_left.size - 1] = (np.exp(-x_0) * beta[beta.size - 1] + np.exp(-x_0) * beta_[0]) / (
+        np.exp(-x_0) * (1 - alpha[alpha.size - 1]) + np.exp(-x_0) * (1 - alpha_[0]))
+y_right[0] = (np.exp(-x_0) * beta[beta.size - 1] + np.exp(-x_0) * beta_[0]) / (
+        np.exp(-x_0) * (1 - alpha[alpha.size - 1]) + np.exp(-x_0) * (1 - alpha_[0]))
+y_left[y_left.size - 2] = alpha[alpha.size - 1] * y_left[y_left.size - 1] + beta[beta.size - 1]
+y_right[1] = alpha_[0] * y_right[0] + beta_[0]
+
+# Reversed progonka
+
+for i in reversed(range(1, y_left.size - 2)):
+    y_left[i] = alpha[i - 1] * y_left[i + 1] + beta[i - 1]
+for i in range(2, y_right.size - 1):
+    y_right[i] = alpha_[i - 1] * y_right[i - 1] + beta_[i - 1]
+
+
+def draw_numerical_model():
+    fig, ax = plt.subplots()
+    ax.scatter(nodes_a, y_left)
+    ax.scatter(nodes_b, y_right)
+    ax.scatter(nodes_a, y1)
+    ax.scatter(nodes_b, y2)
+    plt.show()
+    plt.close()
+
+
+# draw_numerical_model()
+print(max([abs(y1[i] - y_left[i]) for i in range(0, y_left.size)]),
+      max([abs(y2[i] - y_right[i]) for i in range(0, y_right.size)]))
+
+# Variable coefficients
+
+# N_v = 11 * 2 ** (p + 1)
+# Nv = N_v - 2 ** (p + 1) + 1
+# nodes_v = np.linspace(0, 1, Nv)
+# h_v = nodes_v[1] - nodes_v[0]
+# nodes_a_v = np.array([x for x in nodes_v if x < x_0])
+# nodes_b_v = np.array([x for x in nodes_v if x > x_0])
+
+a_l_left = np.zeros(nodes_a.size - 2)
+b_l_left = np.zeros(nodes_a.size - 2)
+c_l_left = np.zetros(nodes_a.size - 2)
+d_l_left = np.zeros(nodes_a.size - 2)
+
+a_l_right = np.zeros(nodes_b.size - 2)
+b_l_right = np.zeros(nodes_b.size - 2)
+c_l_right = np.zeros(nodes_b.size - 2)
+d_l_right = np.zeros(nodes_b.size - 2)
+
+for i in range(0, a_l_left.size):
+    a_l_left[i] = np.exp(-nodes_a[i + 1] - h / 2)
+    b_l_left[i] = -(np.exp(-nodes_a[i + 1] - h / 2) + np.exp(-nodes_a[i + 1] + h / 2) + nodes_a[i + 1] ** 3 * h ** 2)
+    c_l_left[i] = np.exp(-nodes_a[i + 1] + h / 2)
+    d_l_left[i] = -(nodes_a[i + 1] ** 2 - 1) * h ** 2
+
+for i in range(0, a_l_right.size):
+    a_l_right[i] = np.exp(-nodes_b[i + 1] - h / 2)
+    b_l_right[i] = -(np.exp(-nodes_b[i + 1] - h / 2) + np.exp(-nodes_b[i + 1] + h / 2) + nodes_a[i + 1] * h ** 2)
+    c_l_right[i] = np.exp(-nodes_b[i + 1] + h / 2)
+    d_l_right[i] = -h ** 2
+
+y_left_v = np.zeros(nodes_a.size)
+y_right_v = np.zeros(nodes_b.size)
+y_left_v[0] = u0
+y_right_v[y_right_v.size - 1] = u1
+
+alpha_left = np.zeros(a_l_left.size)
+alpha_left[0] = -a_l_left[0] / b_l_left[0]
+beta_left = np.zeros(b_l_left.size)
+beta_left[0] = (d_l_left[0] - c_l_left[0] * u0) / b_l_left[0]
+alpha_right = np.zeros(a_l_right.size)
+alpha_right[alpha_right.size - 1] = -c_l_right[c_l_right.size - 1] / b_l_right[b_l_right.size - 1]
+beta_right = np.zeros(b_l_right.size)
+beta_right[beta_right.size - 1] = (d_l_right[d_l_right.size - 1] - c_l_right[c_l_right.size - 1] * u1) / b_l_right[
+    b_l_right.size - 1]
+
+for i in range(1, alpha_left.size):
+    alpha_left[i] = - a_l_left[i] / (b_l_left[i] + c_l_left[i] * alpha_left[i - 1])
+    beta_left[i] = (d_l_left[i] - c_l_left[i] * beta_left[i - 1]) / (b_l_left[i] + c_l_left[i] * alpha_left[i - 1])
+for i in reversed(range(0, alpha_right.size - 1)):
+    alpha_right[i] = -c_l_right[i] / (b_l_right[i] + a_l_right[i] * alpha_right[i + 1])
+    beta_right[i] = (d_l_right[i] - a_l_right[i] * beta_right[i + 1]) / (
+            b_l_right[i] + a_l_right[i] * alpha_right[i + 1])
+
+y_left_v[y_left_v.size - 1] = (np.exp(-nodes_a[nodes_a.size - 1]) * beta_left[beta_left.size - 1] + np.exp(
+    -nodes_b[0]) * beta_right[0]) / (np.exp(-nodes_a[nodes_a.size - 1]) * (
+        1 - alpha_left[alpha_left.size - 1]) + np.exp(-nodes_b[0]) * (1 - alpha_right[0]))
+y_right_v[0] = (np.exp(-nodes_a[nodes_a.size - 1]) * beta_left[beta_left.size - 1] + np.exp(
+    -nodes_b[0]) * beta_right[0]) / (np.exp(-nodes_a[nodes_a.size - 1]) * (
+        1 - alpha_left[alpha_left.size - 1]) + np.exp(-nodes_b[0]) * (1 - alpha_right[0]))
+y_left_v[y_left_v.size - 2] = alpha_left[alpha_left.size - 1] * y_left_v[y_left_v.size - 1] + beta_left[
+    beta_left.size - 1]
+y_right_v[1] = alpha_right[0] * y_right_v[0] + beta_right[0]
+
+
+for i in reversed(range(1, y_left_v.size - 2)):
+    y_left_v[i] = alpha_left[i - 1] * y_left_v[i + 1] + beta_left[i - 1]
+for i in range(2, y_right.size - 1):
+    y_right_v[i] = alpha_right[i - 1] * y_right_v[i - 1] + beta_right[i - 1]
+
+
+def draw_numerical():
+    fig, ax = plt.subplots()
+    ax.scatter(nodes_a, y_left_v)
+    ax.scatter(nodes_b, y_right_v)
+    ax.scatter(nodes_a, y_left)
+    ax.scatter(nodes_b, y_right)
+    plt.show()
+    plt.close()
+
+
+draw_numerical()
